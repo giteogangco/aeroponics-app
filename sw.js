@@ -1,5 +1,5 @@
 // Minimal service worker — enables PWA install + offline app shell
-const CACHE = 'aero-v3';
+const CACHE = 'aero-v4';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

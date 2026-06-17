@@ -18,9 +18,10 @@
     background:var(--bg);color:var(--txt);
     padding:max(12px,env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom));
     max-width:640px;margin:0 auto;-webkit-user-select:none;user-select:none}
-  header{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 14px}
-  h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.2px}
+  header{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 14px;gap:10px}
+  h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.2px;flex:1}
   h1 span{color:var(--accent)}
+  #gear{background:none;border:none;color:var(--mut);font-size:20px;cursor:pointer}
   #conn{font-size:12px;padding:4px 10px;border-radius:999px;background:#3a1d1d;color:#fca5a5;
     display:flex;align-items:center;gap:6px;white-space:nowrap}
   #conn.ok{background:#0f3024;color:var(--good)}
@@ -30,46 +31,47 @@
   .label{font-size:12px;color:var(--mut);margin-bottom:4px;display:flex;align-items:center;gap:6px}
   .val{font-size:28px;font-weight:700;line-height:1}
   .unit{font-size:14px;color:var(--mut);font-weight:500}
-  .pill{font-size:11px;padding:2px 8px;border-radius:999px;margin-top:8px;display:inline-block;
-    background:#1c3a2d;color:var(--mut)}
+  .pill{font-size:11px;padding:2px 8px;border-radius:999px;margin-top:8px;display:inline-block;background:#1c3a2d;color:var(--mut)}
   .pill.ok{background:#0f3024;color:var(--good)} .pill.alert{background:#3a2a12;color:var(--warn)}
-  .section-title{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;
-    margin:18px 4px 8px;display:flex;justify-content:space-between;align-items:center}
+  .section-title{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin:18px 4px 8px;display:flex;justify-content:space-between;align-items:center}
   .section-title a{color:#4f6b5e;font-size:11px;text-transform:none;letter-spacing:0;cursor:pointer}
-  .row{display:flex;align-items:center;justify-content:space-between;
-    background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+  .row{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px}
   .row .name{font-size:15px;font-weight:600}
   .row .sub{font-size:12px;color:var(--mut);margin-top:2px}
-  .toggle{width:52px;height:30px;border-radius:999px;background:#33473d;position:relative;
-    transition:background .15s;flex:0 0 auto;border:none;cursor:pointer}
+  .toggle{width:52px;height:30px;border-radius:999px;background:#33473d;position:relative;transition:background .15s;flex:0 0 auto;border:none;cursor:pointer}
   .toggle.on{background:var(--accent)}
-  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
-    background:#fff;transition:transform .15s}
+  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .15s}
   .toggle.on::after{transform:translateX(22px)}
   .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  button.action{padding:16px;border-radius:14px;border:1px solid var(--line);background:var(--card2);
-    color:var(--txt);font-size:15px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;
-    align-items:center;gap:6px}
+  button.action{padding:16px;border-radius:14px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font-size:15px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px}
   button.action:active{background:#1d3a2c}
   button.action .ico{font-size:22px}
-  select{width:100%;padding:13px;border-radius:12px;background:var(--card);color:var(--txt);
-    border:1px solid var(--line);font-size:15px;margin-top:4px}
-  .log{background:#0c1c16;border:1px solid var(--line);border-radius:12px;padding:10px 12px;
-    font-size:12px;color:var(--mut);max-height:120px;overflow:auto;font-family:ui-monospace,monospace}
+  select{width:100%;padding:13px;border-radius:12px;background:var(--card);color:var(--txt);border:1px solid var(--line);font-size:15px;margin-top:4px}
+  .log{background:#0c1c16;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--mut);max-height:120px;overflow:auto;font-family:ui-monospace,monospace}
   .log div{padding:2px 0;border-bottom:1px solid #15281f}
   .foot{text-align:center;color:#4f6b5e;font-size:11px;margin-top:18px;line-height:1.5}
   .stale{opacity:.45}
   .chartcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
   .seg{display:flex;gap:6px;margin-bottom:10px}
-  .seg button{flex:1;padding:8px;border-radius:10px;border:1px solid var(--line);background:#0c1c16;
-    color:var(--mut);font-size:13px;font-weight:600;cursor:pointer}
+  .seg button{flex:1;padding:8px;border-radius:10px;border:1px solid var(--line);background:#0c1c16;color:var(--mut);font-size:13px;font-weight:600;cursor:pointer}
   .seg button.sel{background:var(--accent);color:#06241a;border-color:var(--accent)}
   .chartwrap{position:relative;height:200px}
+  /* settings modal */
+  .modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
+  .modal.show{display:flex}
+  .sheet{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;width:100%;max-width:440px}
+  .sheet h2{margin:0 0 4px;font-size:18px}
+  .sheet p{margin:0 0 16px;color:var(--mut);font-size:13px}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--mut);margin-bottom:5px}
+  .field input{width:100%;padding:12px;border-radius:10px;background:#0c1c16;border:1px solid var(--line);color:var(--txt);font-size:15px}
+  .save{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#06241a;font-size:16px;font-weight:700;cursor:pointer;margin-top:6px}
 </style>
 </head>
 <body>
   <header>
     <h1>🌱 Aero<span>ponics</span></h1>
+    <button id="gear" onclick="openSettings()" title="Settings">⚙️</button>
     <div id="conn"><span class="dot"></span><span id="connTxt">Connecting…</span></div>
   </header>
 
@@ -88,10 +90,7 @@
     </div>
   </div>
 
-  <div class="section-title">
-    <span>Trends</span>
-    <a id="histInfo" onclick="clearHistory()">0 points · clear</a>
-  </div>
+  <div class="section-title"><span>Trends</span><a id="histInfo" onclick="clearHistory()">0 points · clear</a></div>
   <div class="chartcard">
     <div class="seg">
       <button data-m="pH" class="sel" onclick="setMetric('pH')">pH</button>
@@ -103,18 +102,9 @@
   </div>
 
   <div class="section-title">Controls</div>
-  <div class="row">
-    <div><div class="name">System Power</div><div class="sub">Master enable for all functions</div></div>
-    <button class="toggle" id="tgSys" onclick="toggle('sys')"></button>
-  </div>
-  <div class="row">
-    <div><div class="name">Auto Dosing</div><div class="sub">Waredose nutrient dosing</div></div>
-    <button class="toggle" id="tgDose" onclick="toggle('dose')"></button>
-  </div>
-  <div class="row">
-    <div><div class="name">Auto Misting</div><div class="sub">Timed misting cycle</div></div>
-    <button class="toggle" id="tgMist" onclick="toggle('mist')"></button>
-  </div>
+  <div class="row"><div><div class="name">System Power</div><div class="sub">Master enable for all functions</div></div><button class="toggle" id="tgSys" onclick="toggle('sys')"></button></div>
+  <div class="row"><div><div class="name">Auto Dosing</div><div class="sub">Waredose nutrient dosing</div></div><button class="toggle" id="tgDose" onclick="toggle('dose')"></button></div>
+  <div class="row"><div><div class="name">Auto Misting</div><div class="sub">Timed misting cycle</div></div><button class="toggle" id="tgMist" onclick="toggle('mist')"></button></div>
 
   <div class="section-title">Manual actions</div>
   <div class="btns">
@@ -128,152 +118,143 @@
   <div class="section-title">Activity</div>
   <div class="log" id="log"></div>
 
-  <button class="action" style="margin-top:14px" onclick="send('status')">
-    <span class="ico">🔄</span>Refresh readings
-  </button>
+  <button class="action" style="margin-top:14px" onclick="send('status')"><span class="ico">🔄</span>Refresh readings</button>
 
-  <div class="foot">
-    Connected to broker.hivemq.com over MQTT · topics aeroponics/*<br>
-    Public broker — for private use, ask to switch to a secured broker.
+  <div class="foot">Private HiveMQ Cloud broker · TLS-encrypted · login required<br>Credentials are stored only on this device.</div>
+
+  <!-- Settings modal -->
+  <div class="modal" id="modal">
+    <div class="sheet">
+      <h2>Broker connection</h2>
+      <p>Enter your HiveMQ Cloud login. These stay on this phone only — they are never part of the app's code.</p>
+      <div class="field"><label>Broker host</label><input id="iHost" autocomplete="off"></div>
+      <div class="field"><label>Topic prefix</label><input id="iPrefix" autocomplete="off"></div>
+      <div class="field"><label>Username</label><input id="iUser" autocomplete="off" autocapitalize="off"></div>
+      <div class="field"><label>Password</label><input id="iPass" type="password" autocomplete="off"></div>
+      <button class="save" onclick="saveSettings()">Save &amp; connect</button>
+    </div>
   </div>
 
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-const BROKER = "wss://broker.hivemq.com:8884/mqtt";
-const T_SENSORS="aeroponics/sensors", T_STATUS="aeroponics/status",
-      T_ALERT="aeroponics/alert", T_CMD="aeroponics/command";
-let client, lastSeen=0;
+/* ---------- settings (stored only on this device) ---------- */
+const CFGKEY='aeroCfg';
+const DEFAULTS={host:'cb4995ab87dc48418df584b86029ce44.s1.eu.hivemq.cloud',
+                prefix:'aero/a5d237fe79', user:'', pass:''};
+let cfg=Object.assign({}, DEFAULTS);
+try{ cfg=Object.assign(cfg, JSON.parse(localStorage.getItem(CFGKEY)||'{}')); }catch(e){}
+let T={};
+function topics(){ const p=cfg.prefix.replace(/\/+$/,''); T={sensors:p+'/sensors',status:p+'/status',alert:p+'/alert',cmd:p+'/command'}; }
+topics();
 
-/* ---------- history (persisted on this phone) ---------- */
+function openSettings(){
+  document.getElementById('iHost').value=cfg.host;
+  document.getElementById('iPrefix').value=cfg.prefix;
+  document.getElementById('iUser').value=cfg.user;
+  document.getElementById('iPass').value=cfg.pass;
+  document.getElementById('modal').classList.add('show');
+}
+function saveSettings(){
+  cfg.host=document.getElementById('iHost').value.trim();
+  cfg.prefix=document.getElementById('iPrefix').value.trim();
+  cfg.user=document.getElementById('iUser').value.trim();
+  cfg.pass=document.getElementById('iPass').value;
+  localStorage.setItem(CFGKEY, JSON.stringify(cfg));
+  topics();
+  document.getElementById('modal').classList.remove('show');
+  if(client){ try{client.end(true);}catch(e){} }
+  connect();
+}
+
+/* ---------- history ---------- */
 const HKEY='aeroHistory', HMAX=300;
-let history=[];
-try{ history=JSON.parse(localStorage.getItem(HKEY)||'[]'); }catch(e){ history=[]; }
+let history=[]; try{ history=JSON.parse(localStorage.getItem(HKEY)||'[]'); }catch(e){ history=[]; }
 let metric='pH';
 const METRICS={pH:{label:'pH',color:'#34d399'},tds:{label:'TDS (ppm)',color:'#22d3ee'},
   temp:{label:'Temp (°C)',color:'#f59e0b'},hum:{label:'Humidity (%)',color:'#a78bfa'}};
-
 function saveHistory(){ try{localStorage.setItem(HKEY,JSON.stringify(history));}catch(e){} }
 function clearHistory(){ history=[]; saveHistory(); updateChart(); updHistInfo(); }
 function updHistInfo(){ document.getElementById('histInfo').textContent=history.length+' points · clear'; }
-
 let chart;
 function initChart(){
-  const ctx=document.getElementById('chart');
-  chart=new Chart(ctx,{type:'line',
+  chart=new Chart(document.getElementById('chart'),{type:'line',
     data:{labels:[],datasets:[{label:METRICS[metric].label,data:[],borderColor:METRICS[metric].color,
       backgroundColor:METRICS[metric].color+'22',borderWidth:2,pointRadius:0,tension:.3,fill:true}]},
-    options:{responsive:true,maintainAspectRatio:false,animation:false,
-      plugins:{legend:{display:false}},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
       scales:{x:{ticks:{color:'#5f7d6e',maxTicksLimit:5,font:{size:10}},grid:{color:'#16281f'}},
               y:{ticks:{color:'#5f7d6e',font:{size:10}},grid:{color:'#16281f'}}}}});
 }
 function updateChart(){
   if(!chart)return;
-  const labels=history.map(h=>new Date(h.t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
-  const data=history.map(h=>h[metric]);
-  chart.data.labels=labels;
+  chart.data.labels=history.map(h=>new Date(h.t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
   chart.data.datasets[0].label=METRICS[metric].label;
-  chart.data.datasets[0].data=data;
+  chart.data.datasets[0].data=history.map(h=>h[metric]);
   chart.data.datasets[0].borderColor=METRICS[metric].color;
   chart.data.datasets[0].backgroundColor=METRICS[metric].color+'22';
   chart.update();
 }
-function setMetric(m){
-  metric=m;
-  document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('sel',b.dataset.m===m));
-  updateChart();
-}
+function setMetric(m){ metric=m; document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('sel',b.dataset.m===m)); updateChart(); }
 
-/* ---------- ui helpers ---------- */
-function logLine(msg){
-  const el=document.getElementById('log');
-  const d=document.createElement('div');
-  d.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
-  el.prepend(d);
-  while(el.children.length>40) el.removeChild(el.lastChild);
-}
-function setConn(ok,txt){
-  document.getElementById('conn').className=ok?'ok':'';
-  document.getElementById('connTxt').textContent=txt;
-}
-function send(cmd){
-  if(!client||!client.connected){logLine('Not connected — not sent: '+cmd);return;}
-  client.publish(T_CMD,cmd); logLine('→ sent: '+cmd);
-}
+/* ---------- ui ---------- */
+function logLine(msg){const el=document.getElementById('log');const d=document.createElement('div');
+  d.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;el.prepend(d);
+  while(el.children.length>40) el.removeChild(el.lastChild);}
+function setConn(ok,txt){document.getElementById('conn').className=ok?'ok':'';document.getElementById('connTxt').textContent=txt;}
+function send(cmd){ if(!client||!client.connected){logLine('Not connected — not sent: '+cmd);return;} client.publish(T.cmd,cmd); logLine('→ sent: '+cmd); }
 let st={sys_on:false,auto_dose:false,auto_mist:false};
-function toggle(which){
-  if(which==='sys')  send(st.sys_on?'off':'on');
-  if(which==='dose') send(st.auto_dose?'dose_off':'dose_on');
-  if(which==='mist') send(st.auto_mist?'mist_off':'mist_on');
-}
+function toggle(w){ if(w==='sys')send(st.sys_on?'off':'on'); if(w==='dose')send(st.auto_dose?'dose_off':'dose_on'); if(w==='mist')send(st.auto_mist?'mist_off':'mist_on'); }
 function selectPlant(v){ if(v!=='') send('plant:'+v); }
 function applyToggle(id,on){ document.getElementById(id).className='toggle'+(on?' on':''); }
 
+let client,lastSeen=0;
 function onSensors(j){
   lastSeen=Date.now(); document.body.classList.remove('stale');
   const set=(id,v)=>document.getElementById(id).textContent=v;
-  set('ph', (j.pH!=null)?Number(j.pH).toFixed(2):'—');
-  set('tds', (j.tds_ppm!=null)?j.tds_ppm:'—');
-  set('temp',(j.temp_c!=null)?Number(j.temp_c).toFixed(1):'—');
-  set('hum', (j.humidity!=null)?j.humidity:'—');
-
+  set('ph',(j.pH!=null)?Number(j.pH).toFixed(2):'—'); set('tds',(j.tds_ppm!=null)?j.tds_ppm:'—');
+  set('temp',(j.temp_c!=null)?Number(j.temp_c).toFixed(1):'—'); set('hum',(j.humidity!=null)?j.humidity:'—');
   const phEl=document.getElementById('phPill');
   if(j.pH!=null){const ok=j.pH>=5.5&&j.pH<=6.5;phEl.textContent=ok?'in range':'out of range';phEl.className='pill '+(ok?'ok':'alert');}
   const tdsEl=document.getElementById('tdsPill');
   if(j.tds_ppm!=null){const low=j.tds_ppm<400;tdsEl.textContent=low?'low':'ok';tdsEl.className='pill '+(low?'alert':'ok');}
-
   st.sys_on=!!j.sys_on; st.auto_dose=!!j.auto_dose; st.auto_mist=!!j.auto_mist;
   applyToggle('tgSys',st.sys_on); applyToggle('tgDose',st.auto_dose); applyToggle('tgMist',st.auto_mist);
-
-  const mb=document.getElementById('mistBadge'), db=document.getElementById('doseBadge');
+  const mb=document.getElementById('mistBadge'),db=document.getElementById('doseBadge');
   mb.textContent=j.misting?'Misting ON':'Mist idle'; mb.className='pill '+(j.misting?'ok':'');
   db.textContent=j.dosing?'Dosing ON':'Dose idle'; db.className='pill '+(j.dosing?'ok':'');
-
-  document.getElementById('liveSub').textContent=
-    `Plant: ${j.plant||'—'} · updated ${new Date().toLocaleTimeString()}`;
-
-  // record history (skip duplicate timestamps within 5s)
+  document.getElementById('liveSub').textContent=`Plant: ${j.plant||'—'} · updated ${new Date().toLocaleTimeString()}`;
   const now=Date.now();
   if(!history.length || now-history[history.length-1].t>5000){
-    history.push({t:now, pH:(j.pH!=null?+(+j.pH).toFixed(2):null),
-      tds:(j.tds_ppm!=null?+j.tds_ppm:null),
-      temp:(j.temp_c!=null?+(+j.temp_c).toFixed(1):null),
-      hum:(j.humidity!=null?+j.humidity:null)});
+    history.push({t:now,pH:(j.pH!=null?+(+j.pH).toFixed(2):null),tds:(j.tds_ppm!=null?+j.tds_ppm:null),
+      temp:(j.temp_c!=null?+(+j.temp_c).toFixed(1):null),hum:(j.humidity!=null?+j.humidity:null)});
     if(history.length>HMAX) history=history.slice(-HMAX);
     saveHistory(); updateChart(); updHistInfo();
   }
 }
-
 function onStatusMsg(txt){
-  if(/^\s*\d+\s*:/.test(txt) && txt.includes(',')){
+  if(/^\s*\d+\s*:/.test(txt)&&txt.includes(',')){
     const sel=document.getElementById('plantSel'); sel.innerHTML='';
-    txt.split(',').forEach(part=>{
-      const m=part.trim().match(/^(\d+)\s*:\s*(.+)$/);
-      if(m){const o=document.createElement('option');o.value=m[1];o.textContent=m[2];sel.appendChild(o);}
-    });
+    txt.split(',').forEach(part=>{const m=part.trim().match(/^(\d+)\s*:\s*(.+)$/);
+      if(m){const o=document.createElement('option');o.value=m[1];o.textContent=m[2];sel.appendChild(o);}});
     logLine('plant list loaded');
   } else { logLine('status: '+txt); }
 }
-
 function connect(){
+  if(!cfg.user || !cfg.pass){ setConn(false,'Setup needed'); openSettings(); return; }
   setConn(false,'Connecting…');
-  client=mqtt.connect(BROKER,{clientId:'aeroApp_'+Math.random().toString(16).slice(2,10),
-    keepalive:30,reconnectPeriod:3000,connectTimeout:8000});
-  client.on('connect',()=>{
-    setConn(true,'Connected');
-    client.subscribe([T_SENSORS,T_STATUS,T_ALERT]);
-    logLine('connected to broker'); send('status'); send('list_plants');
-  });
+  const url='wss://'+cfg.host+':8884/mqtt';
+  client=mqtt.connect(url,{username:cfg.user,password:cfg.pass,
+    clientId:'aeroApp_'+Math.random().toString(16).slice(2,10),
+    keepalive:30,reconnectPeriod:4000,connectTimeout:8000,protocolVersion:4});
+  client.on('connect',()=>{ setConn(true,'Connected'); client.subscribe([T.sensors,T.status,T.alert]);
+    logLine('connected (secure)'); send('status'); send('list_plants'); });
   client.on('reconnect',()=>setConn(false,'Reconnecting…'));
   client.on('close',()=>setConn(false,'Offline'));
-  client.on('error',e=>{setConn(false,'Error');logLine('error: '+(e&&e.message||e));});
-  client.on('message',(topic,payload)=>{
-    const s=payload.toString();
-    if(topic===T_SENSORS){ try{onSensors(JSON.parse(s));}catch(e){logLine('bad sensor data');} }
-    else if(topic===T_ALERT){ logLine('⚠ ALERT: '+s); }
-    else if(topic===T_STATUS){ onStatusMsg(s); }
-  });
+  client.on('error',e=>{setConn(false,'Auth/conn error');logLine('error: '+(e&&e.message||e));});
+  client.on('message',(topic,payload)=>{const s=payload.toString();
+    if(topic===T.sensors){ try{onSensors(JSON.parse(s));}catch(e){logLine('bad sensor data');} }
+    else if(topic===T.alert){ logLine('⚠ ALERT: '+s); }
+    else if(topic===T.status){ onStatusMsg(s); }});
 }
 
 try{ initChart(); }catch(e){ console.warn('chart unavailable:',e); }
