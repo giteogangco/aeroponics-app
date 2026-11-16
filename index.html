@@ -65,6 +65,9 @@
   .field{margin-bottom:12px}
   .field label{display:block;font-size:12px;color:var(--mut);margin-bottom:5px}
   .field input{width:100%;padding:12px;border-radius:10px;background:#0c1c16;border:1px solid var(--line);color:var(--txt);font-size:15px}
+  .times{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .card .field input{width:100%;padding:12px;border-radius:10px;background:#0c1c16;border:1px solid var(--line);color:var(--txt);font-size:16px;color-scheme:dark}
+  .card .sub{font-size:12px;color:var(--mut)}
   .save{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#06241a;font-size:16px;font-weight:700;cursor:pointer;margin-top:6px}
 </style>
 </head>
@@ -86,7 +89,7 @@
     <div><div class="name">Live status</div><div class="sub" id="liveSub">Plant: — · updated —</div></div>
     <div style="text-align:right">
       <span id="mistBadge" class="pill">Mist idle</span>
-      <span id="doseBadge" class="pill">Dose idle</span>
+      <span id="lightBadge" class="pill">Light —</span>
     </div>
   </div>
 
@@ -103,13 +106,23 @@
 
   <div class="section-title">Controls</div>
   <div class="row"><div><div class="name">System Power</div><div class="sub">Master enable for all functions</div></div><button class="toggle" id="tgSys" onclick="toggle('sys')"></button></div>
-  <div class="row"><div><div class="name">Auto Dosing</div><div class="sub">Waredose nutrient dosing</div></div><button class="toggle" id="tgDose" onclick="toggle('dose')"></button></div>
+  <div class="row"><div><div class="name">Light Schedule</div><div class="sub" id="lightSub">Grow light follows on/off times</div></div><button class="toggle" id="tgLight" onclick="toggle('light')"></button></div>
   <div class="row"><div><div class="name">Auto Misting</div><div class="sub">Timed misting cycle</div></div><button class="toggle" id="tgMist" onclick="toggle('mist')"></button></div>
 
   <div class="section-title">Manual actions</div>
   <div class="btns">
-    <button class="action" onclick="send('dose')"><span class="ico">💉</span>Dose now</button>
+    <button class="action" onclick="send(st.light?'light_off':'light_on')"><span class="ico">💡</span><span id="lightBtnTxt">Light on/off</span></button>
     <button class="action" onclick="send('mist')"><span class="ico">🚿</span>Mist 5s</button>
+  </div>
+
+  <div class="section-title">Grow light schedule</div>
+  <div class="card">
+    <div class="times">
+      <div class="field"><label>Light ON at</label><input type="time" id="lightOn" value="06:00"></div>
+      <div class="field"><label>Light OFF at</label><input type="time" id="lightOff" value="22:00"></div>
+    </div>
+    <div class="sub" id="lightHours" style="margin:-2px 0 10px">16 h of light per day</div>
+    <button class="save" onclick="saveSchedule()">Save schedule</button>
   </div>
 
   <div class="section-title">Plant profile</div>
@@ -202,8 +215,18 @@ function logLine(msg){const el=document.getElementById('log');const d=document.c
   while(el.children.length>40) el.removeChild(el.lastChild);}
 function setConn(ok,txt){document.getElementById('conn').className=ok?'ok':'';document.getElementById('connTxt').textContent=txt;}
 function send(cmd){ if(!client||!client.connected){logLine('Not connected — not sent: '+cmd);return;} client.publish(T.cmd,cmd); logLine('→ sent: '+cmd); }
-let st={sys_on:false,auto_dose:false,auto_mist:false};
-function toggle(w){ if(w==='sys')send(st.sys_on?'off':'on'); if(w==='dose')send(st.auto_dose?'dose_off':'dose_on'); if(w==='mist')send(st.auto_mist?'mist_off':'mist_on'); }
+let st={sys_on:false,auto_light:false,auto_mist:false,light:false};
+// turning the schedule off keeps the light in its current state (manual mode)
+function toggle(w){ if(w==='sys')send(st.sys_on?'off':'on'); if(w==='light')send(st.auto_light?(st.light?'light_on':'light_off'):'light_auto'); if(w==='mist')send(st.auto_mist?'mist_off':'mist_on'); }
+function toMin(v){ const [h,m]=v.split(':').map(Number); return h*60+m; }
+function lightHours(on,off){ let d=toMin(off)-toMin(on); if(d<0)d+=1440; const h=Math.floor(d/60),m=d%60; return d===0?'0 h (light never on)':`${h} h${m?' '+m+' min':''} of light per day`; }
+function updHours(){ document.getElementById('lightHours').textContent=lightHours(document.getElementById('lightOn').value,document.getElementById('lightOff').value); }
+let schedEditing=false;
+function saveSchedule(){
+  const on=document.getElementById('lightOn').value, off=document.getElementById('lightOff').value;
+  if(!/^\d\d:\d\d$/.test(on)||!/^\d\d:\d\d$/.test(off)){ logLine('Pick both ON and OFF times'); return; }
+  send(`light_schedule:${on}-${off}`); schedEditing=false;
+}
 function selectPlant(v){ if(v!=='') send('plant:'+v); }
 function applyToggle(id,on){ document.getElementById(id).className='toggle'+(on?' on':''); }
 
@@ -217,11 +240,17 @@ function onSensors(j){
   if(j.pH!=null){const ok=j.pH>=5.5&&j.pH<=6.5;phEl.textContent=ok?'in range':'out of range';phEl.className='pill '+(ok?'ok':'alert');}
   const tdsEl=document.getElementById('tdsPill');
   if(j.tds_ppm!=null){const low=j.tds_ppm<400;tdsEl.textContent=low?'low':'ok';tdsEl.className='pill '+(low?'alert':'ok');}
-  st.sys_on=!!j.sys_on; st.auto_dose=!!j.auto_dose; st.auto_mist=!!j.auto_mist;
-  applyToggle('tgSys',st.sys_on); applyToggle('tgDose',st.auto_dose); applyToggle('tgMist',st.auto_mist);
-  const mb=document.getElementById('mistBadge'),db=document.getElementById('doseBadge');
+  st.sys_on=!!j.sys_on; st.auto_light=!!j.auto_light; st.auto_mist=!!j.auto_mist; st.light=!!j.light;
+  applyToggle('tgSys',st.sys_on); applyToggle('tgLight',st.auto_light); applyToggle('tgMist',st.auto_mist);
+  const mb=document.getElementById('mistBadge'),lb=document.getElementById('lightBadge');
   mb.textContent=j.misting?'Misting ON':'Mist idle'; mb.className='pill '+(j.misting?'ok':'');
-  db.textContent=j.dosing?'Dosing ON':'Dose idle'; db.className='pill '+(j.dosing?'ok':'');
+  lb.textContent=st.light?'Light ON':'Light off'; lb.className='pill '+(st.light?'ok':'');
+  document.getElementById('lightBtnTxt').textContent=st.light?'Light off':'Light on';
+  const sched=/^(\d\d:\d\d)-(\d\d:\d\d)$/.exec(j.light_sched||'');
+  if(sched){
+    document.getElementById('lightSub').textContent=st.auto_light?`Auto · ${sched[1]}–${sched[2]}`:'Manual · schedule paused';
+    if(!schedEditing){ document.getElementById('lightOn').value=sched[1]; document.getElementById('lightOff').value=sched[2]; updHours(); }
+  }
   document.getElementById('liveSub').textContent=`Plant: ${j.plant||'—'} · updated ${new Date().toLocaleTimeString()}`;
   const now=Date.now();
   if(!history.length || now-history[history.length-1].t>5000){
@@ -257,6 +286,7 @@ function connect(){
     else if(topic===T.status){ onStatusMsg(s); }});
 }
 
+['lightOn','lightOff'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{schedEditing=true;updHours();}));
 try{ initChart(); }catch(e){ console.warn('chart unavailable:',e); }
 updateChart(); updHistInfo(); connect();
 setInterval(()=>{ if(lastSeen && Date.now()-lastSeen>70000) document.body.classList.add('stale'); },5000);
