@@ -114,9 +114,9 @@
   </div>
 
   <div class="section-title">Controls</div>
-  <div class="row"><div><div class="name">System Power</div><div class="sub">Master enable for all functions</div></div><button class="toggle" id="tgSys" onclick="toggle('sys')"></button></div>
-  <div class="row"><div><div class="name">Light Schedule</div><div class="sub" id="lightSub">Grow light follows on/off times</div></div><button class="toggle" id="tgLight" onclick="toggle('light')"></button></div>
-  <div class="row"><div><div class="name">Auto Misting</div><div class="sub">Timed misting cycle</div></div><button class="toggle" id="tgMist" onclick="toggle('mist')"></button></div>
+  <div class="row"><div><div class="name">System Power</div><div class="sub">Master enable for all functions</div></div><button class="toggle" id="tgSys" aria-label="System power" onclick="toggle('sys')"></button></div>
+  <div class="row"><div><div class="name">Light Schedule</div><div class="sub" id="lightSub">Grow light follows on/off times</div></div><button class="toggle" id="tgLight" aria-label="Light schedule" onclick="toggle('light')"></button></div>
+  <div class="row"><div><div class="name">Auto Misting</div><div class="sub">Timed misting cycle</div></div><button class="toggle" id="tgMist" aria-label="Auto misting" onclick="toggle('mist')"></button></div>
 
   <div class="section-title">Manual actions</div>
   <div class="btns">
@@ -249,7 +249,7 @@ function saveSettings(){
 }
 
 /* ---------- history ---------- */
-const HKEY='aeroHistory', HMAX=300;
+const HKEY='aeroHistory', HMAX=3456;   // ~24 h at one point per 25 s
 let history=[]; try{ history=JSON.parse(localStorage.getItem(HKEY)||'[]'); }catch(e){ history=[]; }
 let metric='pH';
 const METRICS={pH:{label:'pH',color:'#34d399'},tds:{label:'TDS (ppm)',color:'#22d3ee'},
@@ -296,7 +296,9 @@ function saveSchedule(){
   send(`light_schedule:${on}-${off}`); schedEditing=false;
 }
 function selectPlant(v){ if(v!=='') send('plant:'+v); }
-function applyToggle(id,on){ document.getElementById(id).className='toggle'+(on?' on':''); }
+function syncPlant(name){ if(!name) return; const sel=document.getElementById('plantSel');
+  const o=[...sel.options].find(o=>o.textContent===name); if(o&&sel.value!==o.value) sel.value=o.value; }
+function applyToggle(id,on){ const t=document.getElementById(id); t.className='toggle'+(on?' on':''); t.setAttribute('aria-pressed',on?'true':'false'); }
 
 /* ---------- alerts ---------- */
 const ALERT_TEXT={
@@ -304,7 +306,8 @@ const ALERT_TEXT={
   TEMP_LOW:'Temperature too low',TEMP_HIGH:'Temperature too high',
   HUMIDITY_LOW:'Humidity too low',HUMIDITY_HIGH:'Humidity too high',
   TDS_PROBE_DISCONNECTED:'TDS probe not detected',EC_VERY_LOW_CHECK_RESERVOIR:'Nutrients very low — check the reservoir',
-  light_waiting_for_clock:'Grow light waiting for the internet clock'};
+  light_waiting_for_clock:'Grow light waiting for the internet clock',
+  DHT_NOT_RESPONDING:'Temperature/humidity sensor not responding — check the DHT wiring'};
 // the firmware repeats active alerts every 5 s, so silence for 20 s means they have cleared
 const ALERT_CLEAR_MS=20000;
 let alertKey='',dismissedKey='',alertTimer=null;
@@ -455,7 +458,7 @@ function onSensors(j){
   else{tdsEl.textContent='no probe';tdsEl.className='pill alert';}
   rangePill('tempPill', j.temp_c, L.temp_min, L.temp_max, 0, 'no reading');
   rangePill('humPill', j.humidity, L.hum_min, L.hum_max, 0, 'no reading');
-  onMist(j.mist);
+  onMist(j.mist); syncPlant(j.plant);
   lastReading=j; updCalLive(j); const w=readingWaiters; readingWaiters=[]; w.forEach(f=>f(j));
   st.sys_on=!!j.sys_on; st.auto_light=!!j.auto_light; st.auto_mist=!!j.auto_mist; st.light=!!j.light;
   applyToggle('tgSys',st.sys_on); applyToggle('tgLight',st.auto_light); applyToggle('tgMist',st.auto_mist);
@@ -470,7 +473,7 @@ function onSensors(j){
   }
   document.getElementById('liveSub').textContent=`Plant: ${j.plant||'—'} · updated ${new Date().toLocaleTimeString()}`;
   const now=Date.now();
-  if(!history.length || now-history[history.length-1].t>5000){
+  if(!history.length || now-history[history.length-1].t>25000){
     history.push({t:now,pH:(j.pH!=null?+(+j.pH).toFixed(2):null),tds:(j.tds_ppm!=null?+j.tds_ppm:null),
       temp:(j.temp_c!=null?+(+j.temp_c).toFixed(1):null),hum:(j.humidity!=null?+j.humidity:null)});
     if(history.length>HMAX) history=history.slice(-HMAX);
@@ -483,12 +486,13 @@ function onStatusMsg(txt){
     const sel=document.getElementById('plantSel'); sel.innerHTML='';
     txt.split(',').forEach(part=>{const m=part.trim().match(/^(\d+)\s*:\s*(.+)$/);
       if(m){const o=document.createElement('option');o.value=m[1];o.textContent=m[2];sel.appendChild(o);}});
-    logLine('plant list loaded');
+    logLine('plant list loaded'); syncPlant(lastReading&&lastReading.plant);
   } else if(txt.trim()==='online'){ setDevice('online'); logLine('ESP32 online');
   } else if(txt.trim()==='offline'){ setDevice('offline'); logLine('ESP32 went OFFLINE'); showAlert('ESP32 is offline — check its power and WiFi');
   } else { logLine('status: '+txt); }
 }
 function connect(){
+  if(typeof mqtt==='undefined'){ setConn(false,'No internet'); logLine('Could not load the MQTT library — check the internet connection, then reopen the app'); return; }
   if(!cfg.user || !cfg.pass){ setConn(false,'Setup needed'); openSettings(); return; }
   setConn(false,'Connecting…');
   const url='wss://'+cfg.host+':8884/mqtt';
