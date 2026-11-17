@@ -89,8 +89,8 @@
   <div class="grid">
     <div class="card"><div class="label">💧 pH</div><div class="val"><span id="ph">—</span></div><div id="phPill" class="pill">—</div></div>
     <div class="card"><div class="label">⚡ TDS</div><div class="val"><span id="tds">—</span> <span class="unit">ppm</span></div><div id="tdsPill" class="pill">—</div></div>
-    <div class="card"><div class="label">🌡️ Temperature</div><div class="val"><span id="temp">—</span> <span class="unit">°C</span></div></div>
-    <div class="card"><div class="label">💨 Humidity</div><div class="val"><span id="hum">—</span> <span class="unit">%</span></div></div>
+    <div class="card"><div class="label">🌡️ Temperature</div><div class="val"><span id="temp">—</span> <span class="unit">°C</span></div><div id="tempPill" class="pill">—</div></div>
+    <div class="card"><div class="label">💨 Humidity</div><div class="val"><span id="hum">—</span> <span class="unit">%</span></div><div id="humPill" class="pill">—</div></div>
   </div>
 
   <div class="row" style="margin-bottom:14px">
@@ -266,6 +266,16 @@ function onAlert(raw){
   logLine('⚠ ALERT: '+raw);
 }
 
+function rangePill(id,v,lo,hi,dp,missing){
+  const el=document.getElementById(id);
+  if(v==null){ el.textContent=missing; el.className='pill alert'; return; }
+  if(lo==null||hi==null){ el.textContent='—'; el.className='pill'; return; }
+  const r=`${(+lo).toFixed(dp)}–${(+hi).toFixed(dp)}`;
+  if(v<lo){ el.textContent=`low · ${r}`; el.className='pill alert'; }
+  else if(v>hi){ el.textContent=`high · ${r}`; el.className='pill alert'; }
+  else { el.textContent=`in range · ${r}`; el.className='pill ok'; }
+}
+
 let client,lastSeen=0;
 // device state comes from the firmware's retained "online" / broker last-will "offline",
 // plus a watchdog: readings arrive every 30 s, so 70 s of silence means it has stopped
@@ -280,12 +290,14 @@ function onSensors(j){
   const set=(id,v)=>document.getElementById(id).textContent=v;
   set('ph',(j.pH!=null)?Number(j.pH).toFixed(2):'—'); set('tds',(j.tds_ppm!=null)?j.tds_ppm:'—');
   set('temp',(j.temp_c!=null)?Number(j.temp_c).toFixed(1):'—'); set('hum',(j.humidity!=null)?j.humidity:'—');
-  const phEl=document.getElementById('phPill');
-  if(j.pH!=null&&j.ph_valid!==false){const ok=j.pH>=5.5&&j.pH<=6.5;phEl.textContent=ok?'in range':'out of range';phEl.className='pill '+(ok?'ok':'alert');}
-  else{phEl.textContent='no probe';phEl.className='pill alert';}
+  // limits come from the active plant profile in the firmware; fallbacks cover older firmware
+  const L=Object.assign({ph_min:5.5,ph_max:6.5,tds_low:150,temp_min:null,temp_max:null,hum_min:null,hum_max:null},j.lim||{});
+  rangePill('phPill', j.ph_valid===false?null:j.pH, L.ph_min, L.ph_max, 1, 'no probe');
   const tdsEl=document.getElementById('tdsPill');
-  if(j.tds_ppm!=null&&j.tds_valid!==false){const low=j.tds_ppm<400;tdsEl.textContent=low?'low':'ok';tdsEl.className='pill '+(low?'alert':'ok');}
+  if(j.tds_ppm!=null&&j.tds_valid!==false){const low=j.tds_ppm<L.tds_low;tdsEl.textContent=low?`low · min ${L.tds_low}`:`ok · min ${L.tds_low}`;tdsEl.className='pill '+(low?'alert':'ok');}
   else{tdsEl.textContent='no probe';tdsEl.className='pill alert';}
+  rangePill('tempPill', j.temp_c, L.temp_min, L.temp_max, 0, 'no reading');
+  rangePill('humPill', j.humidity, L.hum_min, L.hum_max, 0, 'no reading');
   st.sys_on=!!j.sys_on; st.auto_light=!!j.auto_light; st.auto_mist=!!j.auto_mist; st.light=!!j.light;
   applyToggle('tgSys',st.sys_on); applyToggle('tgLight',st.auto_light); applyToggle('tgMist',st.auto_mist);
   const mb=document.getElementById('mistBadge'),lb=document.getElementById('lightBadge');
