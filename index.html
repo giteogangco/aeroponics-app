@@ -121,7 +121,7 @@
   <div class="section-title">Manual actions</div>
   <div class="btns">
     <button class="action" onclick="send(st.light?'light_off':'light_on')"><span class="ico">💡</span><span id="lightBtnTxt">Light on/off</span></button>
-    <button class="action" onclick="send('mist')"><span class="ico">🚿</span>Mist 5s</button>
+    <button class="action" onclick="send('mist')"><span class="ico">🚿</span><span id="mistBtnTxt">Mist now</span></button>
   </div>
 
   <div class="section-title">Grow light schedule</div>
@@ -303,6 +303,7 @@ function saveNight(){ const c=readCycle('nightOnS','nightOffM'); if(c){ send('mi
 function toggleNight(){ if(nightEn) send('mist_night:off'); else saveNight(); }
 function onMist(m){
   if(!m) return;
+  document.getElementById('mistBtnTxt').textContent=`Mist now · ${fmtDur(m.on)}`;
   nightEn=!!m.n_en; applyToggle('tgNight',nightEn);
   document.getElementById('mistNow').textContent=
     `Running now: ${fmtDur(m.on)} ON / ${fmtDur(m.off)} OFF · ${m.night?'night cycle':(m.src==='custom'?'your day cycle':'plant default')}`;
