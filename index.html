@@ -50,7 +50,13 @@
   .log{background:#0c1c16;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--mut);max-height:120px;overflow:auto;font-family:ui-monospace,monospace}
   .log div{padding:2px 0;border-bottom:1px solid #15281f}
   .foot{text-align:center;color:#4f6b5e;font-size:11px;margin-top:18px;line-height:1.5}
-  .stale{opacity:.45}
+  .stale .grid,.stale .chartcard{opacity:.45}
+  #alertBanner{display:none;align-items:flex-start;gap:10px;background:#3a2a12;border:1px solid #6b4a14;color:#fde68a;
+    border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:14px}
+  #alertBanner.show{display:flex}
+  #alertBanner .msg{flex:1;line-height:1.45}
+  #alertBanner .when{display:block;font-size:11px;color:#c9a35a;margin-top:2px}
+  #alertBanner button{background:none;border:none;color:#fde68a;font-size:20px;line-height:1;cursor:pointer;padding:0 2px}
   .chartcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
   .seg{display:flex;gap:6px;margin-bottom:10px}
   .seg button{flex:1;padding:8px;border-radius:10px;border:1px solid var(--line);background:#0c1c16;color:var(--mut);font-size:13px;font-weight:600;cursor:pointer}
@@ -78,6 +84,8 @@
     <div id="conn"><span class="dot"></span><span id="connTxt">Connecting…</span></div>
   </header>
 
+  <div id="alertBanner" role="alert"><span>⚠️</span><div class="msg"><span id="alertText"></span><span class="when" id="alertWhen"></span></div><button onclick="dismissAlert()" aria-label="Dismiss alert">×</button></div>
+
   <div class="grid">
     <div class="card"><div class="label">💧 pH</div><div class="val"><span id="ph">—</span></div><div id="phPill" class="pill">—</div></div>
     <div class="card"><div class="label">⚡ TDS</div><div class="val"><span id="tds">—</span> <span class="unit">ppm</span></div><div id="tdsPill" class="pill">—</div></div>
@@ -88,6 +96,7 @@
   <div class="row" style="margin-bottom:14px">
     <div><div class="name">Live status</div><div class="sub" id="liveSub">Plant: — · updated —</div></div>
     <div style="text-align:right">
+      <span id="devBadge" class="pill">ESP32 —</span>
       <span id="mistBadge" class="pill">Mist idle</span>
       <span id="lightBadge" class="pill">Light —</span>
     </div>
@@ -230,16 +239,53 @@ function saveSchedule(){
 function selectPlant(v){ if(v!=='') send('plant:'+v); }
 function applyToggle(id,on){ document.getElementById(id).className='toggle'+(on?' on':''); }
 
+/* ---------- alerts ---------- */
+const ALERT_TEXT={
+  PH_PROBE_DISCONNECTED:'pH probe not detected',pH_LOW:'pH too low',pH_HIGH:'pH too high',
+  TEMP_LOW:'Temperature too low',TEMP_HIGH:'Temperature too high',
+  HUMIDITY_LOW:'Humidity too low',HUMIDITY_HIGH:'Humidity too high',
+  TDS_PROBE_DISCONNECTED:'TDS probe not detected',EC_VERY_LOW_CHECK_RESERVOIR:'Nutrients very low — check the reservoir',
+  light_waiting_for_clock:'Grow light waiting for the internet clock'};
+// the firmware repeats active alerts every 5 s, so silence for 20 s means they have cleared
+const ALERT_CLEAR_MS=20000;
+let alertKey='',dismissedKey='',alertTimer=null;
+function showAlert(text){
+  if(text===dismissedKey) return;
+  alertKey=text;
+  document.getElementById('alertText').textContent=text;
+  document.getElementById('alertWhen').textContent='Last seen '+new Date().toLocaleTimeString();
+  document.getElementById('alertBanner').classList.add('show');
+  clearTimeout(alertTimer);
+  alertTimer=setTimeout(()=>{ document.getElementById('alertBanner').classList.remove('show'); alertKey=''; dismissedKey=''; },ALERT_CLEAR_MS);
+}
+function dismissAlert(){ dismissedKey=alertKey; document.getElementById('alertBanner').classList.remove('show'); }
+function onAlert(raw){
+  const codes=raw.trim().split(/\s+/).filter(Boolean);
+  const text=codes.map(c=>ALERT_TEXT[c]||c.replace(/_/g,' ').toLowerCase()).join(' · ');
+  if(text) showAlert(text);
+  logLine('⚠ ALERT: '+raw);
+}
+
 let client,lastSeen=0;
+// device state comes from the firmware's retained "online" / broker last-will "offline",
+// plus a watchdog: readings arrive every 30 s, so 70 s of silence means it has stopped
+function setDevice(state){
+  const b=document.getElementById('devBadge');
+  const txt={online:'ESP32 online',offline:'ESP32 OFFLINE',silent:'ESP32 no data'}[state];
+  b.textContent=txt; b.className='pill '+(state==='online'?'ok':'alert');
+  document.body.classList.toggle('stale',state!=='online');
+}
 function onSensors(j){
-  lastSeen=Date.now(); document.body.classList.remove('stale');
+  lastSeen=Date.now(); setDevice('online');
   const set=(id,v)=>document.getElementById(id).textContent=v;
   set('ph',(j.pH!=null)?Number(j.pH).toFixed(2):'—'); set('tds',(j.tds_ppm!=null)?j.tds_ppm:'—');
   set('temp',(j.temp_c!=null)?Number(j.temp_c).toFixed(1):'—'); set('hum',(j.humidity!=null)?j.humidity:'—');
   const phEl=document.getElementById('phPill');
-  if(j.pH!=null){const ok=j.pH>=5.5&&j.pH<=6.5;phEl.textContent=ok?'in range':'out of range';phEl.className='pill '+(ok?'ok':'alert');}
+  if(j.pH!=null&&j.ph_valid!==false){const ok=j.pH>=5.5&&j.pH<=6.5;phEl.textContent=ok?'in range':'out of range';phEl.className='pill '+(ok?'ok':'alert');}
+  else{phEl.textContent='no probe';phEl.className='pill alert';}
   const tdsEl=document.getElementById('tdsPill');
-  if(j.tds_ppm!=null){const low=j.tds_ppm<400;tdsEl.textContent=low?'low':'ok';tdsEl.className='pill '+(low?'alert':'ok');}
+  if(j.tds_ppm!=null&&j.tds_valid!==false){const low=j.tds_ppm<400;tdsEl.textContent=low?'low':'ok';tdsEl.className='pill '+(low?'alert':'ok');}
+  else{tdsEl.textContent='no probe';tdsEl.className='pill alert';}
   st.sys_on=!!j.sys_on; st.auto_light=!!j.auto_light; st.auto_mist=!!j.auto_mist; st.light=!!j.light;
   applyToggle('tgSys',st.sys_on); applyToggle('tgLight',st.auto_light); applyToggle('tgMist',st.auto_mist);
   const mb=document.getElementById('mistBadge'),lb=document.getElementById('lightBadge');
@@ -266,6 +312,8 @@ function onStatusMsg(txt){
     txt.split(',').forEach(part=>{const m=part.trim().match(/^(\d+)\s*:\s*(.+)$/);
       if(m){const o=document.createElement('option');o.value=m[1];o.textContent=m[2];sel.appendChild(o);}});
     logLine('plant list loaded');
+  } else if(txt.trim()==='online'){ setDevice('online'); logLine('ESP32 online');
+  } else if(txt.trim()==='offline'){ setDevice('offline'); logLine('ESP32 went OFFLINE'); showAlert('ESP32 is offline — check its power and WiFi');
   } else { logLine('status: '+txt); }
 }
 function connect(){
@@ -282,15 +330,20 @@ function connect(){
   client.on('error',e=>{setConn(false,'Auth/conn error');logLine('error: '+(e&&e.message||e));});
   client.on('message',(topic,payload)=>{const s=payload.toString();
     if(topic===T.sensors){ try{onSensors(JSON.parse(s));}catch(e){logLine('bad sensor data');} }
-    else if(topic===T.alert){ logLine('⚠ ALERT: '+s); }
+    else if(topic===T.alert){ onAlert(s); }
     else if(topic===T.status){ onStatusMsg(s); }});
 }
 
 ['lightOn','lightOff'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{schedEditing=true;updHours();}));
 try{ initChart(); }catch(e){ console.warn('chart unavailable:',e); }
 updateChart(); updHistInfo(); connect();
-setInterval(()=>{ if(lastSeen && Date.now()-lastSeen>70000) document.body.classList.add('stale'); },5000);
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+setInterval(()=>{ if(lastSeen && Date.now()-lastSeen>70000 && document.getElementById('devBadge').textContent==='ESP32 online') setDevice('silent'); },5000);
+if('serviceWorker' in navigator){
+  // a new worker taking over means a new app version: reload once so it shows now
+  const hadController=!!navigator.serviceWorker.controller; let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(hadController&&!reloaded){ reloaded=true; location.reload(); } });
+  navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});
+}
 </script>
 </body>
 </html>
