@@ -134,6 +134,29 @@
     <button class="save" onclick="saveSchedule()">Save schedule</button>
   </div>
 
+  <div class="section-title">Misting cycle</div>
+  <div class="card">
+    <div class="sub" id="mistNow" style="margin-bottom:10px">Running now: —</div>
+    <div class="times">
+      <div class="field"><label>Pump ON (seconds)</label><input type="number" id="mistOnS" min="1" max="600" step="1" inputmode="numeric"></div>
+      <div class="field"><label>Pause OFF (minutes)</label><input type="number" id="mistOffM" min="0.5" max="120" step="0.5" inputmode="decimal"></div>
+    </div>
+    <div class="sub" id="mistHint" style="margin:-2px 0 10px">Tip: ON = time to fill the cup + 20–30 s of rain</div>
+    <div class="btns" style="margin-bottom:14px">
+      <button class="save" style="margin:0" onclick="saveMist()">Save day cycle</button>
+      <button class="save" style="margin:0;background:#1c3a2d;color:var(--txt)" onclick="send('mist_cycle:plant')">Plant default</button>
+    </div>
+    <div class="row" style="margin:0 0 10px;padding:10px 12px;background:#0c1c16">
+      <div><div class="name" style="font-size:14px">Night cycle</div><div class="sub">Used while the grow light is OFF</div></div>
+      <button class="toggle" id="tgNight" onclick="toggleNight()" aria-label="Night misting cycle"></button>
+    </div>
+    <div class="times">
+      <div class="field"><label>Night ON (seconds)</label><input type="number" id="nightOnS" min="1" max="600" step="1" inputmode="numeric"></div>
+      <div class="field"><label>Night OFF (minutes)</label><input type="number" id="nightOffM" min="0.5" max="120" step="0.5" inputmode="decimal"></div>
+    </div>
+    <button class="save" onclick="saveNight()">Save night cycle</button>
+  </div>
+
   <div class="section-title">Plant profile</div>
   <select id="plantSel" onchange="selectPlant(this.value)"><option>Loading…</option></select>
 
@@ -266,6 +289,29 @@ function onAlert(raw){
   logLine('⚠ ALERT: '+raw);
 }
 
+/* ---------- misting cycle ---------- */
+let mistEditing=false, nightEn=false;
+const fmtDur=s=>s<60?`${s} s`:(s%60?`${Math.floor(s/60)} min ${s%60} s`:`${s/60} min`);
+function readCycle(onId,offId){
+  const on=Math.round(+document.getElementById(onId).value), off=Math.round(+document.getElementById(offId).value*60);
+  if(!(on>=1&&on<=600)){ logLine('Pump ON must be 1–600 seconds'); return null; }
+  if(!(off>=10&&off<=7200)){ logLine('Pause OFF must be 0.5–120 minutes'); return null; }
+  return `${on}-${off}`;
+}
+function saveMist(){ const c=readCycle('mistOnS','mistOffM'); if(c){ send('mist_cycle:'+c); mistEditing=false; } }
+function saveNight(){ const c=readCycle('nightOnS','nightOffM'); if(c){ send('mist_night:'+c); mistEditing=false; } }
+function toggleNight(){ if(nightEn) send('mist_night:off'); else saveNight(); }
+function onMist(m){
+  if(!m) return;
+  nightEn=!!m.n_en; applyToggle('tgNight',nightEn);
+  document.getElementById('mistNow').textContent=
+    `Running now: ${fmtDur(m.on)} ON / ${fmtDur(m.off)} OFF · ${m.night?'night cycle':(m.src==='custom'?'your day cycle':'plant default')}`;
+  if(!mistEditing){
+    document.getElementById('mistOnS').value=m.d_on; document.getElementById('mistOffM').value=+(m.d_off/60).toFixed(2);
+    document.getElementById('nightOnS').value=m.n_on; document.getElementById('nightOffM').value=+(m.n_off/60).toFixed(2);
+  }
+}
+
 function rangePill(id,v,lo,hi,dp,missing){
   const el=document.getElementById(id);
   if(v==null){ el.textContent=missing; el.className='pill alert'; return; }
@@ -298,6 +344,7 @@ function onSensors(j){
   else{tdsEl.textContent='no probe';tdsEl.className='pill alert';}
   rangePill('tempPill', j.temp_c, L.temp_min, L.temp_max, 0, 'no reading');
   rangePill('humPill', j.humidity, L.hum_min, L.hum_max, 0, 'no reading');
+  onMist(j.mist);
   st.sys_on=!!j.sys_on; st.auto_light=!!j.auto_light; st.auto_mist=!!j.auto_mist; st.light=!!j.light;
   applyToggle('tgSys',st.sys_on); applyToggle('tgLight',st.auto_light); applyToggle('tgMist',st.auto_mist);
   const mb=document.getElementById('mistBadge'),lb=document.getElementById('lightBadge');
@@ -347,6 +394,7 @@ function connect(){
 }
 
 ['lightOn','lightOff'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{schedEditing=true;updHours();}));
+['mistOnS','mistOffM','nightOnS','nightOffM'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{mistEditing=true;}));
 try{ initChart(); }catch(e){ console.warn('chart unavailable:',e); }
 updateChart(); updHistInfo(); connect();
 setInterval(()=>{ if(lastSeen && Date.now()-lastSeen>70000 && document.getElementById('devBadge').textContent==='ESP32 online') setDevice('silent'); },5000);
