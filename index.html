@@ -157,6 +157,42 @@
     <button class="save" onclick="saveNight()">Save night cycle</button>
   </div>
 
+  <div class="section-title">Calibration</div>
+  <div class="card">
+    <div class="name" style="font-size:15px;font-weight:600">pH probe</div>
+    <div class="sub" id="calPhLive" style="margin:4px 0 10px">Live: — (tap Refresh)</div>
+    <div class="sub" style="margin-bottom:8px"><b>Two-point (recommended).</b> Rinse the probe, put it in buffer 1, wait ~1 min, capture. Rinse, buffer 2, wait, capture.</div>
+    <div class="times">
+      <div class="field"><label>Buffer 1 pH</label><input type="number" id="calB1" value="7.00" step="0.01" min="1" max="13" inputmode="decimal"></div>
+      <div class="field"><label>Buffer 2 pH</label><input type="number" id="calB2" value="4.00" step="0.01" min="1" max="13" inputmode="decimal"></div>
+    </div>
+    <div class="btns" style="margin-bottom:8px">
+      <button class="save" style="margin:0" onclick="capturePoint(1)">Capture buffer 1</button>
+      <button class="save" style="margin:0" onclick="capturePoint(2)">Capture buffer 2</button>
+    </div>
+    <div class="sub" id="calPts" style="margin-bottom:10px">Point 1: — · Point 2: —</div>
+    <button class="save" id="calApply2" onclick="applyTwoPoint()" disabled style="opacity:.5">Apply two-point calibration</button>
+    <div class="sub" style="margin:14px 0 8px"><b>One-point (quick).</b> Probe in a single buffer, then re-centre on it. Keeps the current slope.</div>
+    <div class="times">
+      <div class="field"><label>Buffer pH</label><input type="number" id="cal1" value="7.00" step="0.01" min="1" max="13" inputmode="decimal"></div>
+      <div class="field"><label>&nbsp;</label><button class="save" style="margin:0;padding:12px" onclick="applyOnePoint()">Calibrate</button></div>
+    </div>
+
+    <div class="name" style="font-size:15px;font-weight:600;margin-top:18px">TDS probe</div>
+    <div class="sub" id="calTdsLive" style="margin:4px 0 8px">Live: —</div>
+    <div class="sub" style="margin-bottom:8px">Probe in a solution of known strength (e.g. a 1000 ppm or 707 ppm / 1413 µS standard).</div>
+    <div class="times">
+      <div class="field"><label>Solution ppm</label><input type="number" id="calTds" value="1000" step="1" min="10" max="2000" inputmode="numeric"></div>
+      <div class="field"><label>&nbsp;</label><button class="save" style="margin:0;padding:12px" onclick="applyTds()">Calibrate</button></div>
+    </div>
+
+    <div class="sub" id="calMsg" style="margin-top:12px;min-height:16px"></div>
+    <div class="btns" style="margin-top:10px">
+      <button class="save" style="margin:0;background:#1c3a2d;color:var(--txt)" onclick="refreshCal()">Refresh live values</button>
+      <button class="save" style="margin:0;background:#3a1d1d;color:#fca5a5" onclick="resetCal()">Reset pH + TDS</button>
+    </div>
+  </div>
+
   <div class="section-title">Plant profile</div>
   <select id="plantSel" onchange="selectPlant(this.value)"><option>Loading…</option></select>
 
@@ -289,6 +325,80 @@ function onAlert(raw){
   logLine('⚠ ALERT: '+raw);
 }
 
+/* ---------- calibration (uses commands already in the firmware) ---------- */
+// firmware: pH = 7 + (V - V7)/slope  ->  slope = (V2 - V1) / (pH2 - pH1)
+let lastReading=null, readingWaiters=[], calPts={1:null,2:null}, calWaitTimer=null, calWaitFor='';
+function calMsg(t,bad){ const e=document.getElementById('calMsg'); e.textContent=t; e.style.color=bad?'#fca5a5':''; }
+function freshReading(){ return new Promise((res,rej)=>{ readingWaiters.push(res); send('status');
+  setTimeout(()=>rej(new Error('no reading from the ESP32 — is it online?')),12000); }); }
+function updCalLive(j){
+  document.getElementById('calPhLive').textContent=(j.ph_v!=null)
+    ? `Live: ${Number(j.ph_v).toFixed(3)} V → pH ${j.pH!=null&&j.ph_valid!==false?Number(j.pH).toFixed(2):'— (no probe)'}${j.misting?' · held while misting':''}`
+    : 'Live: —';
+  document.getElementById('calTdsLive').textContent=`Live: ${j.tds_ppm!=null&&j.tds_valid!==false?j.tds_ppm+' ppm':'— (no probe)'}`;
+}
+function refreshCal(){ freshReading().then(()=>calMsg('Live values updated')).catch(e=>calMsg(e.message,true)); }
+async function capturePoint(n){
+  const ph=+document.getElementById('calB'+n).value;
+  if(!(ph>=1&&ph<=13)){ calMsg(`Enter the buffer ${n} pH (1–13)`,true); return; }
+  calMsg(`Reading probe in buffer ${n}…`);
+  try{
+    const j=await freshReading();
+    if(j.misting){ calMsg('Pump is misting — readings are held. Wait for it to stop, then capture again.',true); return; }
+    if(j.ph_v==null||j.ph_valid===false){ calMsg('pH probe not detected — check it is plugged in and in the buffer.',true); return; }
+    calPts[n]={ph,v:+j.ph_v};
+    updCalPts();
+    calMsg(`Buffer ${n} captured at ${(+j.ph_v).toFixed(3)} V`);
+  }catch(e){ calMsg(e.message,true); }
+}
+function twoPointSlope(){
+  const a=calPts[1], b=calPts[2];
+  if(!a||!b) return {err:'Capture both buffers first'};
+  if(Math.abs(a.ph-b.ph)<1.5) return {err:'Use two buffers at least 1.5 pH apart (e.g. 7 and 4)'};
+  const s=(b.v-a.v)/(b.ph-a.ph);
+  if(!(Math.abs(s)>0.01&&Math.abs(s)<1)) return {err:`Slope ${s.toFixed(4)} V/pH is out of range — did the probe settle in each buffer?`};
+  return {s};
+}
+function updCalPts(){
+  const f=p=>p?`pH ${p.ph.toFixed(2)} @ ${p.v.toFixed(3)} V`:'—';
+  const r=twoPointSlope();
+  document.getElementById('calPts').textContent=`Point 1: ${f(calPts[1])} · Point 2: ${f(calPts[2])}`+(r.s!=null?` · slope ${r.s.toFixed(4)} V/pH`:'');
+  const btn=document.getElementById('calApply2'); btn.disabled=r.s==null; btn.style.opacity=r.s==null?.5:1;
+}
+function expectCal(prefix,what){
+  calWaitFor=prefix; clearTimeout(calWaitTimer);
+  calWaitTimer=setTimeout(()=>{ if(calWaitFor){ calWaitFor=''; calMsg(`No confirmation for ${what} — the probe may be unplugged or out of solution. Nothing was changed.`,true); } },10000);
+}
+function applyTwoPoint(){
+  const r=twoPointSlope(); if(r.err){ calMsg(r.err,true); return; }
+  // the probe is in buffer 2 now, so re-centre on it after setting the slope
+  send('phslope:'+r.s.toFixed(4)); send('calph:'+calPts[2].ph.toFixed(2));
+  calMsg('Sent — waiting for the ESP32 to confirm…'); expectCal('ph_calibrated','pH');
+}
+function applyOnePoint(){
+  const ph=+document.getElementById('cal1').value;
+  if(!(ph>=1&&ph<=13)){ calMsg('Enter the buffer pH (1–13)',true); return; }
+  send('calph:'+ph.toFixed(2)); calMsg('Sent — waiting for the ESP32 to confirm…'); expectCal('ph_calibrated','pH');
+}
+function applyTds(){
+  const ppm=Math.round(+document.getElementById('calTds').value);
+  if(!(ppm>=10&&ppm<=2000)){ calMsg('Enter the solution strength (10–2000 ppm)',true); return; }
+  send('caltds:'+ppm); calMsg('Sent — waiting for the ESP32 to confirm…'); expectCal('tds_calibrated','TDS');
+}
+function resetCal(){
+  if(!confirm('Reset BOTH pH and TDS calibration to factory defaults?')) return;
+  send('calreset'); calPts={1:null,2:null}; updCalPts(); calMsg('Sent — waiting for the ESP32 to confirm…'); expectCal('ph_cal_reset','reset');
+}
+function onCalStatus(txt){
+  if(!calWaitFor||!txt.startsWith(calWaitFor)) return;
+  calWaitFor=''; clearTimeout(calWaitTimer);
+  const m=/^ph_calibrated:([\d.]+)@([\d.]+)V/.exec(txt), k=/^tds_calibrated:k=([\d.]+)/.exec(txt);
+  calMsg(m?`✓ pH calibrated: ${m[2]} V = pH ${m[1]}. Saved on the ESP32.`
+        :k?`✓ TDS calibrated (factor ${k[1]}). Saved on the ESP32.`
+        :'✓ Calibration reset to defaults.');
+  setTimeout(()=>freshReading().catch(()=>{}),1500);
+}
+
 /* ---------- misting cycle ---------- */
 let mistEditing=false, nightEn=false;
 const fmtDur=s=>s<60?`${s} s`:(s%60?`${Math.floor(s/60)} min ${s%60} s`:`${s/60} min`);
@@ -346,6 +456,7 @@ function onSensors(j){
   rangePill('tempPill', j.temp_c, L.temp_min, L.temp_max, 0, 'no reading');
   rangePill('humPill', j.humidity, L.hum_min, L.hum_max, 0, 'no reading');
   onMist(j.mist);
+  lastReading=j; updCalLive(j); const w=readingWaiters; readingWaiters=[]; w.forEach(f=>f(j));
   st.sys_on=!!j.sys_on; st.auto_light=!!j.auto_light; st.auto_mist=!!j.auto_mist; st.light=!!j.light;
   applyToggle('tgSys',st.sys_on); applyToggle('tgLight',st.auto_light); applyToggle('tgMist',st.auto_mist);
   const mb=document.getElementById('mistBadge'),lb=document.getElementById('lightBadge');
@@ -367,6 +478,7 @@ function onSensors(j){
   }
 }
 function onStatusMsg(txt){
+  onCalStatus(txt.trim());
   if(/^\s*\d+\s*:/.test(txt)&&txt.includes(',')){
     const sel=document.getElementById('plantSel'); sel.innerHTML='';
     txt.split(',').forEach(part=>{const m=part.trim().match(/^(\d+)\s*:\s*(.+)$/);
