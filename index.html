@@ -396,6 +396,12 @@ function resetCal(){
   send('calreset'); calPts={1:null,2:null}; updCalPts(); calMsg('Sent — waiting for the ESP32 to confirm…'); expectCal('ph_cal_reset','reset');
 }
 function onCalStatus(txt){
+  if(calWaitFor&&/^(ph|tds)_cal_failed:/.test(txt)){
+    calWaitFor=''; clearTimeout(calWaitTimer);
+    calMsg(txt.endsWith('too_low')?'TDS calibration failed: reading too low — is the probe in the solution? Nothing was changed.'
+          :`${txt.startsWith('ph')?'pH':'TDS'} calibration failed: probe not detected. Nothing was changed.`,true);
+    return;
+  }
   if(!calWaitFor||!txt.startsWith(calWaitFor)) return;
   calWaitFor=''; clearTimeout(calWaitTimer);
   const m=/^ph_calibrated:([\d.]+)@([\d.]+)V/.exec(txt), k=/^tds_calibrated:k=([\d.]+)/.exec(txt);
