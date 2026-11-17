@@ -356,16 +356,19 @@ async function capturePoint(n){
 }
 function twoPointSlope(){
   const a=calPts[1], b=calPts[2];
-  if(!a||!b) return {err:'Capture both buffers first'};
-  if(Math.abs(a.ph-b.ph)<1.5) return {err:'Use two buffers at least 1.5 pH apart (e.g. 7 and 4)'};
+  if(!a||!b) return {err:`capture buffer ${a?2:1} first`};
+  if(Math.abs(a.ph-b.ph)<1.5) return {err:'the two buffers must be at least 1.5 pH apart (e.g. 7 and 4)'};
   const s=(b.v-a.v)/(b.ph-a.ph);
-  if(!(Math.abs(s)>0.01&&Math.abs(s)<1)) return {err:`Slope ${s.toFixed(4)} V/pH is out of range — did the probe settle in each buffer?`};
+  if(!(Math.abs(s)>0.01&&Math.abs(s)<1)) return {err:`the voltage barely changed between buffers (${(b.v-a.v).toFixed(3)} V) — is the probe connected and settled in each one?`};
   return {s};
 }
 function updCalPts(){
   const f=p=>p?`pH ${p.ph.toFixed(2)} @ ${p.v.toFixed(3)} V`:'—';
   const r=twoPointSlope();
-  document.getElementById('calPts').textContent=`Point 1: ${f(calPts[1])} · Point 2: ${f(calPts[2])}`+(r.s!=null?` · slope ${r.s.toFixed(4)} V/pH`:'');
+  // say why Apply is off, so a disabled button is never a mystery
+  const why=r.s!=null?` · slope ${r.s.toFixed(4)} V/pH ✓`
+          :(calPts[1]||calPts[2])?` — Apply is off: ${r.err}`:'';
+  document.getElementById('calPts').textContent=`Point 1: ${f(calPts[1])} · Point 2: ${f(calPts[2])}${why}`;
   const btn=document.getElementById('calApply2'); btn.disabled=r.s==null; btn.style.opacity=r.s==null?.5:1;
 }
 function expectCal(prefix,what){
