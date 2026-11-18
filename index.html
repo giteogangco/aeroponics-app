@@ -477,7 +477,8 @@ function onSensors(j){
   document.getElementById('lightBtnTxt').textContent=st.light?'Light off':'Light on';
   const sched=/^(\d\d:\d\d)-(\d\d:\d\d)$/.exec(j.light_sched||'');
   if(sched){
-    document.getElementById('lightSub').textContent=st.auto_light?`Auto · ${sched[1]}–${sched[2]}`:'Manual · schedule paused';
+    const clk=j.time?` · board time ${j.time}${j.tz?' '+j.tz:''}`:'';
+    document.getElementById('lightSub').textContent=(st.auto_light?`Auto · ${sched[1]}–${sched[2]}`:'Manual · schedule paused')+clk;
     if(!schedEditing){ document.getElementById('lightOn').value=sched[1]; document.getElementById('lightOff').value=sched[2]; updHours(); }
   }
   document.getElementById('liveSub').textContent=`Plant: ${j.plant||'—'} · updated ${new Date().toLocaleTimeString()}`;
